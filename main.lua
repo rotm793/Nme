@@ -5,13 +5,15 @@ local HttpService = game:GetService("HttpService")
 local githubKullaniciAdi = "rotm793"
 local repoAdi = "Nme"
 
-local keyDataUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/key_data.lua"
-local success, keyList = pcall(function()
-    return loadstring(game:HttpGet(keyDataUrl))()
-end)
+-- İki ayrı dosyayı da internetten çekiyoruz
+local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
+local normalUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/normal_keys.lua"
 
-if not success or type(keyList) ~= "table" then
-    LP:Kick("SW HUB: Bağlantı hatası!")
+local s1, adminList = pcall(function() return loadstring(game:HttpGet(adminUrl))() end)
+local s2, normalList = pcall(function() return loadstring(game:HttpGet(normalUrl))() end)
+
+if not s1 or not s2 then
+    LP:Kick("SW HUB: Sifre dosyalari yuklenemedi!")
     return
 end
 
@@ -19,9 +21,8 @@ local loginSuccess = false
 local loginWindowActive = true
 local isAdmin = false
 
+-- GİRİŞ PANELİ (Tertemiz, parantezsiz)
 local LoginGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-LoginGui.Name = "SW_Login_System"
-
 local MainFrame = Instance.new("Frame", LoginGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 150)
 MainFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
@@ -43,7 +44,7 @@ Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
 local InputBox = Instance.new("TextBox", MainFrame)
 InputBox.Size = UDim2.new(0, 260, 0, 35)
 InputBox.Position = UDim2.new(0, 20, 0, 55)
-InputBox.PlaceholderText = "Şifreyi Girin..."
+InputBox.PlaceholderText = "Sifreyi Girin..."
 InputBox.Text = ""
 InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
@@ -55,7 +56,7 @@ local SubmitBtn = Instance.new("TextButton", MainFrame)
 SubmitBtn.Size = UDim2.new(0, 260, 0, 35)
 SubmitBtn.Position = UDim2.new(0, 20, 0, 100)
 SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
-SubmitBtn.Text = "GİRİŞ YAP"
+SubmitBtn.Text = "GIRIS YAP"
 SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitBtn.Font = Enum.Font.GothamBold
 SubmitBtn.TextSize = 13
@@ -64,16 +65,22 @@ Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 6)
 
 SubmitBtn.MouseButton1Click:Connect(function()
     local girilenSifre = InputBox.Text
-    if keyList[girilenSifre] ~= nil then
+    
+    if adminList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = keyList[girilenSifre]
+        isAdmin = true -- Admin olarak açar
+        loginWindowActive = false
+        LoginGui:Destroy()
+    elseif normalList[girilenSifre] ~= nil then
+        loginSuccess = true
+        isAdmin = false -- Normal kullanıcı olarak açar
         loginWindowActive = false
         LoginGui:Destroy()
     else
-        SubmitBtn.Text = "YANLIŞ ŞİFRE!"
+        SubmitBtn.Text = "YANLIS SIFRE!"
         SubmitBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         task.wait(1.5)
-        SubmitBtn.Text = "GİRİŞ YAP"
+        SubmitBtn.Text = "GIRIS YAP"
         SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
     end
 end)
@@ -81,12 +88,11 @@ end)
 while loginWindowActive do task.wait(0.1) end
 if not loginSuccess then return end
 
+-- BURADAN SONRASI RAYFIELD MENÜSÜ VE SENKRONİZASYON MOTORU (Değişmedi)
 local RS = game:GetService("RunService")
 local TCS = game:GetService("TextChatService")
 
 if game:GetService("CoreGui"):FindFirstChild("Rayfield") then game:GetService("CoreGui").Rayfield:Destroy() end
-if LP.PlayerGui:FindFirstChild("Rayfield") then LP.PlayerGui.Rayfield:Destroy() end
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -99,42 +105,24 @@ local Window = Rayfield:CreateWindow({
 
 local Tab = Window:CreateTab("Master Sync", 4483362458)
 
+-- Admin Paneli (Sadece admin_keys.lua'daki şifreyle girenlerde açılır)
 if isAdmin then
     local GenTab = Window:CreateTab("Key Generator", 4483362458)
     local GeneratedKeyStr = ""
-    local GiveGeneratorAccess = false
     
     GenTab:CreateButton({
-        Name = "Rastgele Şifre Üret",
+        Name = "Rastgele Normal Sifre Uret",
         Callback = function()
-            local karakterler = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            local karakterler = "abcdefghijklmnopqrstuvwxyz0123456789"
             local sonuc = "SW_"
-            for i = 1, 8 do
+            for i = 1, 6 do
                 local r = math.random(1, #karakterler)
                 sonuc = sonuc .. string.sub(karakterler, r, r)
             end
             GeneratedKeyStr = sonuc
-            Rayfield:Notify({Title = "Şifre Üretildi", Content = "Yeni Şifre: " .. sonuc .. " (Kopyalandı)", Duration = 5})
-            setclipboard(sonuc)
-        end,
-    })
-    
-    GenTab:CreateToggle({
-        Name = "Yeni Şifre Üretebilsin mi? (Admin)",
-        CurrentValue = false,
-        Flag = "AccessToggle",
-        Callback = function(Value) GiveGeneratorAccess = Value end,
-    })
-    
-    GenTab:CreateButton({
-        Name = "ŞİFREYİ GITHUB DEPOSUNA EKLE",
-        Callback = function()
-            if GeneratedKeyStr == "" then
-                Rayfield:Notify({Title = "Hata", Content = "Önce şifre üretmelisiniz!", Duration = 3})
-                return
-            end
-            Rayfield:Notify({Title = "Kopyalandı!", Content = "GitHub'daki key_data.lua'ya eklemen için satır kopyalandı.", Duration = 6})
-            setclipboard("    [\"" .. GeneratedKeyStr .. "\"] = " .. tostring(GiveGeneratorAccess) .. ",")
+            Rayfield:Notify({Title = "Sifre Uretildi", Content = sonuc .. " (Kopyalandi)", Duration = 5})
+            setclipboard("    [\"" .. sonuc .. "\"] = true,") 
+            -- Direkt GitHub'a yapıştırılacak hazır satırı panoya kopyalar!
         end,
     })
 end
@@ -167,7 +155,7 @@ Tab:CreateButton({
    Callback = function()
       if targetUsername ~= "" and targetId ~= 0 then
          clearOldConnections()
-         Rayfield:Notify({Title = "MASTER SYNC AKTİF", Content = "Veriler kilitleniyor...", Duration = 4})
+         Rayfield:Notify({Title = "MASTER SYNC AKTIF", Content = "Veriler kilitleniyor...", Duration = 4})
 
          local selectedVic = Players:FindFirstChild(targetUsername)
          if not selectedVic then
@@ -180,7 +168,7 @@ Tab:CreateButton({
          end
 
          if not selectedVic then
-            Rayfield:Notify({ Title = "Hata", Content = "Oyuncu bulunamadı.", Duration = 4 })
+            Rayfield:Notify({ Title = "Hata", Content = "Oyuncu bulunamadi.", Duration = 4 })
             return
          end
 
@@ -250,9 +238,9 @@ Tab:CreateButton({
              end)
          end))
 
-         Rayfield:Notify({Title = "TAM SENKRONİZASYON", Content = "İşlem başarılı!", Duration = 5})
+         Rayfield:Notify({Title = "TAM SENKRONIZASYON", Content = "Islem basarili!", Duration = 5})
       else
-         Rayfield:Notify({ Title = "Hata", Content = "Lütfen tüm kutuları doldurun.", Duration = 4 })
+         Rayfield:Notify({ Title = "Hata", Content = "Lutfen tum kutulari doldurun.", Duration = 4 })
       end
    end,
 })
