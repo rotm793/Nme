@@ -1,11 +1,9 @@
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
 
 local githubKullaniciAdi = "rotm793"
 local repoAdi = "Nme"
 
--- İki ayrı dosyayı da internetten çekiyoruz
 local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
 local normalUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/normal_keys.lua"
 
@@ -21,7 +19,6 @@ local loginSuccess = false
 local loginWindowActive = true
 local isAdmin = false
 
--- GİRİŞ PANELİ (Tertemiz, parantezsiz)
 local LoginGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local MainFrame = Instance.new("Frame", LoginGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 150)
@@ -65,15 +62,14 @@ Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 6)
 
 SubmitBtn.MouseButton1Click:Connect(function()
     local girilenSifre = InputBox.Text
-    
     if adminList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = true -- Admin olarak açar
+        isAdmin = true
         loginWindowActive = false
         LoginGui:Destroy()
     elseif normalList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = false -- Normal kullanıcı olarak açar
+        isAdmin = false
         loginWindowActive = false
         LoginGui:Destroy()
     else
@@ -88,16 +84,10 @@ end)
 while loginWindowActive do task.wait(0.1) end
 if not loginSuccess then return end
 
--- BURADAN SONRASI RAYFIELD MENÜSÜ VE SENKRONİZASYON MOTORU (Değişmedi)
-local RS = game:GetService("RunService")
-local TCS = game:GetService("TextChatService")
-
-if game:GetService("CoreGui"):FindFirstChild("Rayfield") then game:GetService("CoreGui").Rayfield:Destroy() end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
 local Window = Rayfield:CreateWindow({
    Name = "SW Hub | Total Identity Overhaul",
-   LoadingTitle = "All-In-One Engine Activating...",
+   LoadingTitle = "Activating Engine...",
    LoadingSubtitle = "by SW Hub",
    ConfigurationSaving = { Enabled = false },
    KeySystem = false
@@ -105,11 +95,8 @@ local Window = Rayfield:CreateWindow({
 
 local Tab = Window:CreateTab("Master Sync", 4483362458)
 
--- Admin Paneli (Sadece admin_keys.lua'daki şifreyle girenlerde açılır)
 if isAdmin then
     local GenTab = Window:CreateTab("Key Generator", 4483362458)
-    local GeneratedKeyStr = ""
-    
     GenTab:CreateButton({
         Name = "Rastgele Normal Sifre Uret",
         Callback = function()
@@ -119,10 +106,8 @@ if isAdmin then
                 local r = math.random(1, #karakterler)
                 sonuc = sonuc .. string.sub(karakterler, r, r)
             end
-            GeneratedKeyStr = sonuc
             Rayfield:Notify({Title = "Sifre Uretildi", Content = sonuc .. " (Kopyalandi)", Duration = 5})
-            setclipboard("    [\"" .. sonuc .. "\"] = true,") 
-            -- Direkt GitHub'a yapıştırılacak hazır satırı panoya kopyalar!
+            setclipboard("    [\"" .. sonuc .. "\"] = true,")
         end,
     })
 end
@@ -174,53 +159,12 @@ Tab:CreateButton({
 
          local s, tName = pcall(function() return Players:GetNameFromUserIdAsync(targetId) end)
          if not s then tName = "crydollz" end
-         local info = game:GetService("UserService"):GetUserInfosByUserIdsAsync({targetId})[1]
-         local tDisplay = (info and info.DisplayName ~= "" and info.DisplayName) or tName
          
-         local thumbHead = "rbxthumb://type=AvatarHeadShot&id=" .. targetId .. "&w=150&h=150"
-         local thumbBust = "rbxthumb://type=AvatarBust&id=" .. targetId .. "&w=150&h=150"
-
-         local oldNameStr = selectedVic.Name
-         local oldDisplayStr = selectedVic.DisplayName
-         local oldUserIdStr = tostring(selectedVic.UserId)
-
-         TCS.OnIncomingMessage = function(message)
-            local properties = Instance.new("TextChatMessageProperties")
-            if message.TextSource and message.TextSource.UserId == selectedVic.UserId then
-                local originalPrefix = message.PrefixText or ""
-                local fixedPrefix = originalPrefix
-                if string.find(fixedPrefix, oldDisplayStr) then fixedPrefix = string.gsub(fixedPrefix, oldDisplayStr, tDisplay) end
-                if string.find(fixedPrefix, oldNameStr) then fixedPrefix = string.gsub(fixedPrefix, oldNameStr, tName) end
-                if fixedPrefix == "" then fixedPrefix = "<font color='#FFFFFF'>" .. tDisplay .. "</font>" end
-                properties.PrefixText = fixedPrefix
-            end
-            return properties
-         end
-
+         -- Potasyum'da hataya sebep olan sert Chat filtresi kaldırıldı, sadece UI ve İsimler hedeflendi.
          local function masterUIFilter(v)
              if v:IsA("TextLabel") then
-                 if string.find(v.Text, oldNameStr) or string.find(v.Text, oldDisplayStr) or string.find(string.lower(v.Text), "berenscp") then
-                     v.Text = string.gsub(string.gsub(v.Text, oldDisplayStr, tDisplay), oldNameStr, tName)
-                     table.insert(connections, v:GetPropertyChangedSignal("Text"):Connect(function()
-                         v.Text = string.gsub(string.gsub(v.Text, oldDisplayStr, tDisplay), oldNameStr, tName)
-                     end))
-                 end
-             elseif v:IsA("ImageLabel") then
-                 local imgStr = string.lower(v.Image)
-                 local isExactlyTarget = false
-                 if string.find(imgStr, oldUserIdStr) then isExactlyTarget = true
-                 elseif v:GetAttribute("PlayerId") == selectedVic.UserId or v:GetAttribute("UserId") == selectedVic.UserId then isExactlyTarget = true
-                 elseif v.Parent then
-                     for _, child in pairs(v.Parent:GetChildren()) do
-                         if child:IsA("TextLabel") and (child.Text == tDisplay or child.Text == tName or string.find(child.Text, oldDisplayStr)) then
-                             if string.find(imgStr, "rbxthumb") or string.find(imgStr, "avatar") then isExactlyTarget = true break end
-                         end
-                     end
-                 end
-                 if isExactlyTarget then
-                     local currentThumb = string.find(imgStr, "bust") and thumbBust or thumbHead
-                     v.Image = currentThumb
-                     table.insert(connections, v:GetPropertyChangedSignal("Image"):Connect(function() v.Image = currentThumb end))
+                 if string.find(v.Text, selectedVic.Name) or string.find(v.Text, selectedVic.DisplayName) then
+                     v.Text = tName
                  end
              end
          end
@@ -228,12 +172,11 @@ Tab:CreateButton({
          for _, v in pairs(game:GetDescendants()) do pcall(masterUIFilter, v) end
          table.insert(connections, game.DescendantAdded:Connect(function(v) pcall(function() masterUIFilter(v) end) end))
 
-         table.insert(connections, RS.RenderStepped:Connect(function()
+         table.insert(connections, game:GetService("RunService").RenderStepped:Connect(function()
              pcall(function()
-                 selectedVic.DisplayName = tDisplay
-                 selectedVic.Name = tName
+                 selectedVic.DisplayName = tName
                  if selectedVic.Character and selectedVic.Character:FindFirstChildOfClass("Humanoid") then
-                     selectedVic.Character.Humanoid.DisplayName = tDisplay
+                     selectedVic.Character.Humanoid.DisplayName = tName
                  end
              end)
          end))
