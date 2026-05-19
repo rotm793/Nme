@@ -1,17 +1,17 @@
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
 
 local githubKullaniciAdi = "rotm793"
 local repoAdi = "Nme"
 
-local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
-local normalUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/normal_keys.lua"
+local keyDataUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/key_data.lua"
+local success, keyList = pcall(function()
+    return loadstring(game:HttpGet(keyDataUrl))()
+end)
 
-local s1, adminList = pcall(function() return loadstring(game:HttpGet(adminUrl))() end)
-local s2, normalList = pcall(function() return loadstring(game:HttpGet(normalUrl))() end)
-
-if not s1 or not s2 then
-    LP:Kick("SW HUB: Sifre dosyalari yuklenemedi!")
+if not success or type(keyList) ~= "table" then
+    LP:Kick("SW HUB: Bağlantı hatası!")
     return
 end
 
@@ -20,6 +20,8 @@ local loginWindowActive = true
 local isAdmin = false
 
 local LoginGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+LoginGui.Name = "SW_Login_System"
+
 local MainFrame = Instance.new("Frame", LoginGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 150)
 MainFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
@@ -41,7 +43,7 @@ Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
 local InputBox = Instance.new("TextBox", MainFrame)
 InputBox.Size = UDim2.new(0, 260, 0, 35)
 InputBox.Position = UDim2.new(0, 20, 0, 55)
-InputBox.PlaceholderText = "Sifreyi Girin..."
+InputBox.PlaceholderText = "Şifreyi Girin..."
 InputBox.Text = ""
 InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
@@ -53,7 +55,7 @@ local SubmitBtn = Instance.new("TextButton", MainFrame)
 SubmitBtn.Size = UDim2.new(0, 260, 0, 35)
 SubmitBtn.Position = UDim2.new(0, 20, 0, 100)
 SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
-SubmitBtn.Text = "GIRIS YAP"
+SubmitBtn.Text = "GİRİŞ YAP"
 SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitBtn.Font = Enum.Font.GothamBold
 SubmitBtn.TextSize = 13
@@ -62,21 +64,16 @@ Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 6)
 
 SubmitBtn.MouseButton1Click:Connect(function()
     local girilenSifre = InputBox.Text
-    if adminList[girilenSifre] ~= nil then
+    if keyList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = true
-        loginWindowActive = false
-        LoginGui:Destroy()
-    elseif normalList[girilenSifre] ~= nil then
-        loginSuccess = true
-        isAdmin = false
+        isAdmin = keyList[girilenSifre]
         loginWindowActive = false
         LoginGui:Destroy()
     else
-        SubmitBtn.Text = "YANLIS SIFRE!"
+        SubmitBtn.Text = "YANLIŞ ŞİFRE!"
         SubmitBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         task.wait(1.5)
-        SubmitBtn.Text = "GIRIS YAP"
+        SubmitBtn.Text = "GİRİŞ YAP"
         SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
     end
 end)
@@ -84,10 +81,17 @@ end)
 while loginWindowActive do task.wait(0.1) end
 if not loginSuccess then return end
 
+local RS = game:GetService("RunService")
+local TCS = game:GetService("TextChatService")
+
+if game:GetService("CoreGui"):FindFirstChild("Rayfield") then game:GetService("CoreGui").Rayfield:Destroy() end
+if LP.PlayerGui:FindFirstChild("Rayfield") then LP.PlayerGui.Rayfield:Destroy() end
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
 local Window = Rayfield:CreateWindow({
    Name = "SW Hub | Total Identity Overhaul",
-   LoadingTitle = "Activating Engine...",
+   LoadingTitle = "All-In-One Engine Activating...",
    LoadingSubtitle = "by SW Hub",
    ConfigurationSaving = { Enabled = false },
    KeySystem = false
@@ -97,17 +101,40 @@ local Tab = Window:CreateTab("Master Sync", 4483362458)
 
 if isAdmin then
     local GenTab = Window:CreateTab("Key Generator", 4483362458)
+    local GeneratedKeyStr = ""
+    local GiveGeneratorAccess = false
+    
     GenTab:CreateButton({
-        Name = "Rastgele Normal Sifre Uret",
+        Name = "Rastgele Şifre Üret",
         Callback = function()
-            local karakterler = "abcdefghijklmnopqrstuvwxyz0123456789"
+            local karakterler = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             local sonuc = "SW_"
-            for i = 1, 6 do
+            for i = 1, 8 do
                 local r = math.random(1, #karakterler)
                 sonuc = sonuc .. string.sub(karakterler, r, r)
             end
-            Rayfield:Notify({Title = "Sifre Uretildi", Content = sonuc .. " (Kopyalandi)", Duration = 5})
-            setclipboard("    [\"" .. sonuc .. "\"] = true,")
+            GeneratedKeyStr = sonuc
+            Rayfield:Notify({Title = "Şifre Üretildi", Content = "Yeni Şifre: " .. sonuc .. " (Kopyalandı)", Duration = 5})
+            setclipboard(sonuc)
+        end,
+    })
+    
+    GenTab:CreateToggle({
+        Name = "Yeni Şifre Üretebilsin mi? (Admin)",
+        CurrentValue = false,
+        Flag = "AccessToggle",
+        Callback = function(Value) GiveGeneratorAccess = Value end,
+    })
+    
+    GenTab:CreateButton({
+        Name = "ŞİFREYİ GITHUB DEPOSUNA EKLE",
+        Callback = function()
+            if GeneratedKeyStr == "" then
+                Rayfield:Notify({Title = "Hata", Content = "Önce şifre üretmelisiniz!", Duration = 3})
+                return
+            end
+            Rayfield:Notify({Title = "Kopyalandı!", Content = "GitHub'daki key_data.lua'ya eklemen için satır kopyalandı.", Duration = 6})
+            setclipboard("    [\"" .. GeneratedKeyStr .. "\"] = " .. tostring(GiveGeneratorAccess) .. ",")
         end,
     })
 end
@@ -140,7 +167,7 @@ Tab:CreateButton({
    Callback = function()
       if targetUsername ~= "" and targetId ~= 0 then
          clearOldConnections()
-         Rayfield:Notify({Title = "MASTER SYNC AKTIF", Content = "Veriler kilitleniyor...", Duration = 4})
+         Rayfield:Notify({Title = "MASTER SYNC AKTİF", Content = "Veriler kilitleniyor...", Duration = 4})
 
          local selectedVic = Players:FindFirstChild(targetUsername)
          if not selectedVic then
@@ -153,18 +180,59 @@ Tab:CreateButton({
          end
 
          if not selectedVic then
-            Rayfield:Notify({ Title = "Hata", Content = "Oyuncu bulunamadi.", Duration = 4 })
+            Rayfield:Notify({ Title = "Hata", Content = "Oyuncu bulunamadı.", Duration = 4 })
             return
          end
 
          local s, tName = pcall(function() return Players:GetNameFromUserIdAsync(targetId) end)
          if not s then tName = "crydollz" end
+         local info = game:GetService("UserService"):GetUserInfosByUserIdsAsync({targetId})[1]
+         local tDisplay = (info and info.DisplayName ~= "" and info.DisplayName) or tName
          
-         -- Potasyum'da hataya sebep olan sert Chat filtresi kaldırıldı, sadece UI ve İsimler hedeflendi.
+         local thumbHead = "rbxthumb://type=AvatarHeadShot&id=" .. targetId .. "&w=150&h=150"
+         local thumbBust = "rbxthumb://type=AvatarBust&id=" .. targetId .. "&w=150&h=150"
+
+         local oldNameStr = selectedVic.Name
+         local oldDisplayStr = selectedVic.DisplayName
+         local oldUserIdStr = tostring(selectedVic.UserId)
+
+         TCS.OnIncomingMessage = function(message)
+            local properties = Instance.new("TextChatMessageProperties")
+            if message.TextSource and message.TextSource.UserId == selectedVic.UserId then
+                local originalPrefix = message.PrefixText or ""
+                local fixedPrefix = originalPrefix
+                if string.find(fixedPrefix, oldDisplayStr) then fixedPrefix = string.gsub(fixedPrefix, oldDisplayStr, tDisplay) end
+                if string.find(fixedPrefix, oldNameStr) then fixedPrefix = string.gsub(fixedPrefix, oldNameStr, tName) end
+                if fixedPrefix == "" then fixedPrefix = "<font color='#FFFFFF'>" .. tDisplay .. "</font>" end
+                properties.PrefixText = fixedPrefix
+            end
+            return properties
+         end
+
          local function masterUIFilter(v)
              if v:IsA("TextLabel") then
-                 if string.find(v.Text, selectedVic.Name) or string.find(v.Text, selectedVic.DisplayName) then
-                     v.Text = tName
+                 if string.find(v.Text, oldNameStr) or string.find(v.Text, oldDisplayStr) or string.find(string.lower(v.Text), "berenscp") then
+                     v.Text = string.gsub(string.gsub(v.Text, oldDisplayStr, tDisplay), oldNameStr, tName)
+                     table.insert(connections, v:GetPropertyChangedSignal("Text"):Connect(function()
+                         v.Text = string.gsub(string.gsub(v.Text, oldDisplayStr, tDisplay), oldNameStr, tName)
+                     end))
+                 end
+             elseif v:IsA("ImageLabel") then
+                 local imgStr = string.lower(v.Image)
+                 local isExactlyTarget = false
+                 if string.find(imgStr, oldUserIdStr) then isExactlyTarget = true
+                 elseif v:GetAttribute("PlayerId") == selectedVic.UserId or v:GetAttribute("UserId") == selectedVic.UserId then isExactlyTarget = true
+                 elseif v.Parent then
+                     for _, child in pairs(v.Parent:GetChildren()) do
+                         if child:IsA("TextLabel") and (child.Text == tDisplay or child.Text == tName or string.find(child.Text, oldDisplayStr)) then
+                             if string.find(imgStr, "rbxthumb") or string.find(imgStr, "avatar") then isExactlyTarget = true break end
+                         end
+                     end
+                 end
+                 if isExactlyTarget then
+                     local currentThumb = string.find(imgStr, "bust") and thumbBust or thumbHead
+                     v.Image = currentThumb
+                     table.insert(connections, v:GetPropertyChangedSignal("Image"):Connect(function() v.Image = currentThumb end))
                  end
              end
          end
@@ -172,18 +240,19 @@ Tab:CreateButton({
          for _, v in pairs(game:GetDescendants()) do pcall(masterUIFilter, v) end
          table.insert(connections, game.DescendantAdded:Connect(function(v) pcall(function() masterUIFilter(v) end) end))
 
-         table.insert(connections, game:GetService("RunService").RenderStepped:Connect(function()
+         table.insert(connections, RS.RenderStepped:Connect(function()
              pcall(function()
-                 selectedVic.DisplayName = tName
+                 selectedVic.DisplayName = tDisplay
+                 selectedVic.Name = tName
                  if selectedVic.Character and selectedVic.Character:FindFirstChildOfClass("Humanoid") then
-                     selectedVic.Character.Humanoid.DisplayName = tName
+                     selectedVic.Character.Humanoid.DisplayName = tDisplay
                  end
              end)
          end))
 
-         Rayfield:Notify({Title = "TAM SENKRONIZASYON", Content = "Islem basarili!", Duration = 5})
+         Rayfield:Notify({Title = "TAM SENKRONİZASYON", Content = "İşlem başarılı!", Duration = 5})
       else
-         Rayfield:Notify({ Title = "Hata", Content = "Lutfen tum kutulari doldurun.", Duration = 4 })
+         Rayfield:Notify({ Title = "Hata", Content = "Lütfen tüm kutuları doldurun.", Duration = 4 })
       end
    end,
 })
