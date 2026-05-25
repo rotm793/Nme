@@ -1,4 +1,4 @@
 local NormalSifreler = {
-    ["."] = true, -- Arkadaşlarına vereceğin düz şifre
+    ["boklusemihbokunukokluyo"] = true, -- Arkadaşlarına vereceğin düz şifre
 }
 return NormalSifreler
