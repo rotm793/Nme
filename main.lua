@@ -14,7 +14,7 @@ local DEVELOPER_SETTINGS = {
 }
 
 -- =====================================================================
--- [GÜVENLİ & SABİT] LUA TABLO TABANLI WHITELIST MOTORU
+-- [ASLA PATLAMAZ] HAM METİN TABANLI WHITELIST MOTORU
 -- =====================================================================
 local whitelistUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/whitelist.lua", DEVELOPER_SETTINGS.GithubUser, DEVELOPER_SETTINGS.Repository)
 
@@ -28,21 +28,15 @@ local function enforceSecurity()
         return false
     end
 
-    -- Gelen veriyi canlı Lua tablosuna dönüştür
-    local executeSuccess, whitelistTable = pcall(function()
-        return loadstring(rawData)()
-    end)
+    local currentUserIdStr = tostring(LP.UserId)
 
-    -- Eğer tablo başarıyla yüklendiyse kontrol et
-    if executeSuccess and type(whitelistTable) == "table" then
-        -- EĞER OYUNCUNUN ID'Sİ TABLODA VARSA GEÇİŞE İZİN VER
-        if whitelistTable[LP.UserId] == true then
-            return true 
-        end
+    -- GitHub'dan gelen saf metnin içinde oyuncunun ID'si geçiyor mu?
+    -- Satır satır aramaz, döngüye girmez, doğrudan tüm metne bakar. Patlama şansı %0.
+    if string.find(rawData, currentUserIdStr) then
+        return true -- Whitelist onaylandı, geçiş serbest!
     end
 
     -- BİREBİR ROBLOX MODERASYON VE SISTEM MESAJI SIMÜLASYONU (YETKİSİZ GİRİŞ)
-    local currentUserIdStr = tostring(LP.UserId)
     pcall(function()
         LP:Kick(string.format(
             "\n\n[Roblox Security Notice]\n" ..
@@ -55,7 +49,7 @@ local function enforceSecurity()
         ))
     end)
     
-    -- Anti-Bypass Motoru
+    -- Mobil Executor Koruma Katmanı
     task.spawn(function()
         pcall(function() LP:Destroy() end)
         while true do
@@ -182,11 +176,11 @@ local Window = Rayfield:CreateWindow({
 
 local Tab = Window:CreateTab("Master Sync", 4483362458)
 
--- OWNER / ADMIN PANELİ (Sadece admin_keys.lua şifresiyle girenlerde açılır)
+-- OWNER PANELİ (Sadece Admin Key girildiğinde açılır)
 if isAdmin then
     local GenTab = Window:CreateTab("Owner Panel", 4483362458)
     
-    -- Şifre Üretme Butonu
+    -- Şifre Üretici
     GenTab:CreateButton({
         Name = "Generate Standard Token",
         Callback = function()
@@ -196,12 +190,12 @@ if isAdmin then
                 local r = math.random(1, #karakterler)
                 sonuc = sonuc .. string.sub(karakterler, r, r)
             end
-            Rayfield:Notify({Title = "Token Generated", Content = sonuc .. " (Copied to Clipboard)", Duration = 5})
+            Rayfield:Notify({Title = "Token Generated", Content = sonuc .. " (Copied)", Duration = 5})
             setclipboard("    [\"" .. sonuc .. "\"] = true,") 
         end,
     })
 
-    -- Gelişmiş Whitelist Format Üretici (Kullanman gereken kodu panoya kopyalar)
+    -- Yeni Whitelist Format Üretici (Sadece Saf ID Üretir)
     local inputWhitelistId = ""
     GenTab:CreateInput({
         Name = "Whitelist ID Girişi",
@@ -211,16 +205,15 @@ if isAdmin then
     })
 
     GenTab:CreateButton({
-        Name = "Kullanılacak Whitelist Kodunu Al",
+        Name = "Kullanılacak Whitelist ID'sini Al",
         Callback = function()
             local cleanId = string.gsub(inputWhitelistId, "%s+", "")
             if cleanId ~= "" and tonumber(cleanId) then
-                -- GitHub'daki whitelist.lua dosyasının içine direkt yapıştırabileceğin kodu hazır üretir
-                local formattedCode = string.format("    [%s] = true,", cleanId)
-                setclipboard(formattedCode)
+                -- Yeni sisteme uygun saf numarayı kopyalar
+                setclipboard(cleanId)
                 Rayfield:Notify({
-                    Title = "Kod Panoya Kopyalandı!",
-                    Content = "GitHub'daki whitelist.lua tablosunun içine girip yapıştır.",
+                    Title = "ID Panoya Kopyalandı!",
+                    Content = "GitHub'daki whitelist.lua dosyasına girip yeni bir satıra yapıştır.",
                     Duration = 6
                 })
             else
