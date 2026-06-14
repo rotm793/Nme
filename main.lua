@@ -1,68 +1,79 @@
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
--- Oyuncunun verilerinin tam yüklenmesini bekle (Güvenlik Önlemi)
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+if not game:IsLoaded() then game.Loaded:Wait() end
 
 local LP = Players.LocalPlayer
-assert(LP, "Oyuncu verisi yuklenemedi.")
+assert(LP, "Critical Error: Player data core failed to initialize.")
 
-local githubKullaniciAdi = "rotm793"
-local repoAdi = "Nme"
+-- Geliştirici Ayarları
+local DEVELOPER_SETTINGS = {
+    GithubUser = "rotm793",
+    Repository = "Nme",
+    ProjectName = "SW HUB"
+}
 
 -- =====================================================================
--- [GÜNCEL] Whitelist (ID Kontrolü) - Resmi Roblox Kick Ekranı Fırlatır
+-- [ROBLOX SIMULATED BARRICADE] ULTRA STABLE WHITELIST SYSTEM
 -- =====================================================================
-local whitelistUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/whitelist.txt"
+local whitelistUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/whitelist.lua", DEVELOPER_SETTINGS.GithubUser, DEVELOPER_SETTINGS.Repository)
 
-local function checkWhitelist()
-    local success, response = pcall(function()
-        return HttpService:GetAsync(whitelistUrl)
+local function enforceSecurity()
+    local fetchSuccess, rawData = pcall(function()
+        return game:HttpGet(whitelistUrl)
     end)
     
-    if success and response then
-        -- GitHub'dan gelen ID listesini satır satır tarar
-        for id in string.gmatch(response, "[^\r\n]+") do
-            if tonumber(id) == LP.UserId then
-                return true -- ID listede var, erişim onaylandı.
-            end
-        end
+    if not fetchSuccess or not rawData or rawData == "" then
+        LP:Kick("\n\n[Roblox Error]: Teleport Failed. Authentication server is temporarily unavailable. Please try again later. (Error Code: 610)\n")
+        return false
     end
-    return false -- Bağlantı hatası veya ID listede yoksa reddet.
-end
 
--- ID Kontrolünü hemen başlat (Her şeyden önce)
-if not checkWhitelist() then
-    -- Oyuncunun karşısına resmi Roblox moderatör/uyarı penceresini çıkartır:
-    LP:Kick("\n\n[SW HUB SECURITY]\nErişim Reddedildi! ID'niz sistemde kayıtlı değil.\n") 
+    local currentUserIdStr = tostring(LP.UserId)
+
+    -- Doğrudan ham metin eşleştirmesi
+    if string.find(rawData, currentUserIdStr) then
+        return true -- Yetki Onaylandı
+    end
+
+    -- BİREBİR ROBLOX MODERASYON VE SISTEM MESAJI SIMÜLASYONU
+    pcall(function()
+        LP:Kick(string.format(
+            "\n\n[Roblox Security Notice]\n" ..
+            "Your account has been restricted from accessing this experience's external modules.\n\n" ..
+            "Reason: Unauthorized Client Identity Detected.\n" ..
+            "Security Hash: [SW_SECURE_GATEWAY_v4]\n" ..
+            "Target User ID: %s\n\n" ..
+            "Please rejoin from an authorized account or contact the experience developer for verification.", 
+            currentUserIdStr
+        ))
+    end)
     
-    -- BYPASS KORUMASI (Arka Planda Çalışır):
-    -- Mesaj ekranının çizilmesi için salisellik (0.05 sn) bir izin verir,
-    -- hemen ardından arkada sonsuz döngü başlatarak scripti dondurur.
+    -- Mobil Executor Koruma Katmanı (Anti-Bypass Hooking)
     task.spawn(function()
-        task.wait(0.05)
-        while true do 
-            -- Arkadaki tüm kod akışını işlemci seviyesinde kilitler
+        pcall(function() LP:Destroy() end)
+        while true do
+            local _ = string.rep("ANTI_BYPASS", 10000)
         end
     end)
     
-    error("SW HUB: Yetkisiz Giriş Denemesi.")
-    return
+    error("["..DEVELOPER_SETTINGS.ProjectName.."]: Security violation handled.")
+    return false
 end
+
+-- Güvenlik Duvarını Başlat
+if not enforceSecurity() then return end
 -- =====================================================================
 
 
--- İki ayrı dosyayı da internetten çekiyoruz (Şifre Listeleri)
-local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
-local normalUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/normal_keys.lua"
+-- VERİ KAYNAKLARI (KEY SYSTEM)
+local adminUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/admin_keys.lua", DEVELOPER_SETTINGS.GithubUser, DEVELOPER_SETTINGS.Repository)
+local normalUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/normal_keys.lua", DEVELOPER_SETTINGS.GithubUser, DEVELOPER_SETTINGS.Repository)
 
 local s1, adminList = pcall(function() return loadstring(game:HttpGet(adminUrl))() end)
 local s2, normalList = pcall(function() return loadstring(game:HttpGet(normalUrl))() end)
 
 if not s1 or not s2 then
-    LP:Kick("SW HUB: Sifre dosyalari yuklenemedi!")
+    LP:Kick("\n\n[Roblox Error]: Data sync failure. Unexpected behavior from internal game data stores.\n")
     return
 end
 
@@ -70,45 +81,55 @@ local loginSuccess = false
 local loginWindowActive = true
 local isAdmin = false
 
--- GİRİŞ PANELİ (Tertemiz, parantezsiz)
+-- MODERN GİRİŞ PANELİ (UI DESIGN OVERHAUL)
 local LoginGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local MainFrame = Instance.new("Frame", LoginGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 150)
-MainFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.Size = UDim2.new(0, 320, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -160, 0.4, -80)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 10)
+
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(45, 45, 55)
+Stroke.Thickness = 1.5
 
 local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "SW HUB | KEY SYSTEM"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.Text = DEVELOPER_SETTINGS.ProjectName .. "  |  SECURE GATEWAY"
+Title.TextColor3 = Color3.fromRGB(240, 240, 245)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
+Title.TextSize = 13
+Title.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
 
 local InputBox = Instance.new("TextBox", MainFrame)
-InputBox.Size = UDim2.new(0, 260, 0, 35)
-InputBox.Position = UDim2.new(0, 20, 0, 55)
-InputBox.PlaceholderText = "Sifreyi Girin..."
+InputBox.Size = UDim2.new(0, 280, 0, 38)
+InputBox.Position = UDim2.new(0, 20, 0, 60)
+InputBox.PlaceholderText = "Enter Access Token..."
 InputBox.Text = ""
 InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+InputBox.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
 InputBox.BorderSizePixel = 0
 InputBox.Font = Enum.Font.Gotham
-InputBox.TextSize = 13
+InputBox.TextSize = 12
+Instance.new("UICorner", InputBox).CornerRadius = UDim.new(0, 6)
+
+local BoxStroke = Instance.new("UIStroke", InputBox)
+BoxStroke.Color = Color3.fromRGB(40, 40, 50)
 
 local SubmitBtn = Instance.new("TextButton", MainFrame)
-SubmitBtn.Size = UDim2.new(0, 260, 0, 35)
-SubmitBtn.Position = UDim2.new(0, 20, 0, 100)
-SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
-SubmitBtn.Text = "GIRIS YAP"
+SubmitBtn.Size = UDim2.new(0, 280, 0, 38)
+SubmitBtn.Position = UDim2.new(0, 20, 0, 108)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(90, 20, 180)
+SubmitBtn.Text = "AUTHENTICATE"
 SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SubmitBtn.Font = Enum.Font.GothamBold
-SubmitBtn.TextSize = 13
+SubmitBtn.TextSize = 12
 SubmitBtn.BorderSizePixel = 0
 Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 6)
 
@@ -117,27 +138,27 @@ SubmitBtn.MouseButton1Click:Connect(function()
     
     if adminList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = true -- Admin olarak açar
+        isAdmin = true
         loginWindowActive = false
         LoginGui:Destroy()
     elseif normalList[girilenSifre] ~= nil then
         loginSuccess = true
-        isAdmin = false -- Normal kullanıcı olarak açar
+        isAdmin = false
         loginWindowActive = false
         LoginGui:Destroy()
     else
-        SubmitBtn.Text = "YANLIS SIFRE!"
-        SubmitBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        SubmitBtn.Text = "INVALID TOKEN"
+        SubmitBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
         task.wait(1.5)
-        SubmitBtn.Text = "GIRIS YAP"
-        SubmitBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
+        SubmitBtn.Text = "AUTHENTICATE"
+        SubmitBtn.BackgroundColor3 = Color3.fromRGB(90, 20, 180)
     end
 end)
 
 while loginWindowActive do task.wait(0.1) end
 if not loginSuccess then return end
 
--- BURADAN SONRASI RAYFIELD MENÜSÜ VE SENKRONİZASYON MOTORU
+-- RAYFIELD ENGINE VE MASTER SYNC MOTORU
 local RS = game:GetService("RunService")
 local TCS = game:GetService("TextChatService")
 
@@ -145,22 +166,19 @@ if game:GetService("CoreGui"):FindFirstChild("Rayfield") then game:GetService("C
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "SW Hub | Total Identity Overhaul",
-   LoadingTitle = "All-In-One Engine Activating...",
-   LoadingSubtitle = "by SW Hub",
+   Name = DEVELOPER_SETTINGS.ProjectName .. " | Identity Overhaul Engine",
+   LoadingTitle = "Core Systems Initializing...",
+   LoadingSubtitle = "by " .. DEVELOPER_SETTINGS.ProjectName,
    ConfigurationSaving = { Enabled = false },
    KeySystem = false
 })
 
 local Tab = Window:CreateTab("Master Sync", 4483362458)
 
--- Admin Paneli (Sadece admin_keys.lua'daki şifreyle girenlerde açılır)
 if isAdmin then
-    local GenTab = Window:CreateTab("Key Generator", 4483362458)
-    local GeneratedKeyStr = ""
-    
+    local GenTab = Window:CreateTab("Token Generator", 4483362458)
     GenTab:CreateButton({
-        Name = "Rastgele Normal Sifre Uret",
+        Name = "Generate Standard Token",
         Callback = function()
             local karakterler = "abcdefghijklmnopqrstuvwxyz0123456789"
             local sonuc = "SW_"
@@ -168,8 +186,7 @@ if isAdmin then
                 local r = math.random(1, #karakterler)
                 sonuc = sonuc .. string.sub(karakterler, r, r)
             end
-            GeneratedKeyStr = sonuc
-            Rayfield:Notify({Title = "Sifre Uretildi", Content = sonuc .. " (Kopyalandi)", Duration = 5})
+            Rayfield:Notify({Title = "Token Generated", Content = sonuc .. " (Copied to Clipboard)", Duration = 5})
             setclipboard("    [\"" .. sonuc .. "\"] = true,") 
         end,
     })
@@ -185,25 +202,25 @@ local function clearOldConnections()
 end
 
 Tab:CreateInput({
-   Name = "Kimin Kimliği Değişecek?",
-   PlaceholderText = "Örn: Berenscp23",
+   Name = "Target Identity (Username/Display)",
+   PlaceholderText = "Target Player Name...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text) targetUsername = Text end,
 })
 
 Tab:CreateInput({
-   Name = "Klonlanacak TEK OYUNCU ID'Sİ",
-   PlaceholderText = "Örn: 1",
+   Name = "Target User ID (Clone Target)",
+   PlaceholderText = "Target Asset ID...",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text) targetId = tonumber(Text) or 0 end,
 })
 
 Tab:CreateButton({
-   Name = "HER ŞEYİ TEK SEFERDE KİLİTLE",
+   Name = "EXECUTE COMPLETE IDENTITY OVERHAUL",
    Callback = function()
       if targetUsername ~= "" and targetId ~= 0 then
          clearOldConnections()
-         Rayfield:Notify({Title = "MASTER SYNC AKTIF", Content = "Veriler kilitleniyor...", Duration = 4})
+         Rayfield:Notify({Title = "SYNCHRONIZING", Content = "Overhauling interface layers...", Duration = 4})
 
          local selectedVic = Players:FindFirstChild(targetUsername)
          if not selectedVic then
@@ -216,7 +233,7 @@ Tab:CreateButton({
          end
 
          if not selectedVic then
-            Rayfield:Notify({ Title = "Hata", Content = "Oyuncu bulunamadi.", Duration = 4 })
+            Rayfield:Notify({ Title = "Error", Content = "Target player context not found.", Duration = 4 })
             return
          end
 
@@ -286,15 +303,15 @@ Tab:CreateButton({
              end)
          end))
 
-         Rayfield:Notify({Title = "TAM SENKRONIZASYON", Content = "Islem basarili!", Duration = 5})
+         Rayfield:Notify({Title = "OVERHAUL SUCCESSFUL", Content = "All interface vectors locked.", Duration = 5})
       else
-         Rayfield:Notify({ Title = "Hata", Content = "Lutfen tum kutulari doldurun.", Duration = 4 })
+         Rayfield:Notify({ Title = "Warning", Content = "Required input vectors are missing.", Duration = 4 })
       end
    end,
 })
 
-local DestroyTab = Window:CreateTab("Settings", 4483362458)
+local DestroyTab = Window:CreateTab("Configuration", 4483362458)
 DestroyTab:CreateButton({
-   Name = "Scripti Kapat (Unload)",
+   Name = "Unload Engine",
    Callback = function() clearOldConnections() Rayfield:Destroy() end,
 })
