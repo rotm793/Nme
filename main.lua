@@ -1,9 +1,46 @@
 local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
+
+-- Oyuncunun verilerinin tam yüklenmesini bekle (Güvenlik Önlemi)
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local LP = Players.LocalPlayer
+assert(LP, "Oyuncu verisi yuklenemedi.")
 
 local githubKullaniciAdi = "rotm793"
 local repoAdi = "Nme"
+
+-- =====================================================================
+-- [YENİ] Gelişmiş Whitelist (ID Kontrolü) Sistemi - Olmayanlar Direkt Kicklenir
+-- =====================================================================
+local whitelistUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/whitelist.txt"
+
+local function checkWhitelist()
+    local success, response = pcall(function()
+        return HttpService:GetAsync(whitelistUrl)
+    end)
+    
+    if success and response then
+        -- GitHub'dan gelen ID listesini satır satır tarar
+        for id in string.gmatch(response, "[^\r\n]+") do
+            if tonumber(id) == LP.UserId then
+                return true -- ID listede var, erişim onaylandı.
+            end
+        end
+    end
+    return false -- Bağlantı hatası veya ID listede yoksa reddet.
+end
+
+-- ID Kontrolünü hemen başlat (Şifre ekranından önce)
+if not checkWhitelist() then
+    LP:Kick() -- Parantez içi boş: Sessizce ve uyarısız direkt oyundan atar.
+    while true do end -- Exploit bypass koruması (Oyunu dondurur/crash atar)
+    return
+end
+-- =====================================================================
+
 
 -- İki ayrı dosyayı da internetten çekiyoruz
 local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
