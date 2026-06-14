@@ -13,7 +13,7 @@ local githubKullaniciAdi = "rotm793"
 local repoAdi = "Nme"
 
 -- =====================================================================
--- [YENİ] Gelişmiş Whitelist (ID Kontrolü) Sistemi - Olmayanlar Direkt Kicklenir
+-- [GÜNCEL] Whitelist (ID Kontrolü) - Resmi Roblox Kick Ekranı Fırlatır
 -- =====================================================================
 local whitelistUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/whitelist.txt"
 
@@ -33,16 +33,28 @@ local function checkWhitelist()
     return false -- Bağlantı hatası veya ID listede yoksa reddet.
 end
 
--- ID Kontrolünü hemen başlat (Şifre ekranından önce)
+-- ID Kontrolünü hemen başlat (Her şeyden önce)
 if not checkWhitelist() then
-    LP:Kick() -- Parantez içi boş: Sessizce ve uyarısız direkt oyundan atar.
-    while true do end -- Exploit bypass koruması (Oyunu dondurur/crash atar)
+    -- Oyuncunun karşısına resmi Roblox moderatör/uyarı penceresini çıkartır:
+    LP:Kick("\n\n[SW HUB SECURITY]\nErişim Reddedildi! ID'niz sistemde kayıtlı değil.\n") 
+    
+    -- BYPASS KORUMASI (Arka Planda Çalışır):
+    -- Mesaj ekranının çizilmesi için salisellik (0.05 sn) bir izin verir,
+    -- hemen ardından arkada sonsuz döngü başlatarak scripti dondurur.
+    task.spawn(function()
+        task.wait(0.05)
+        while true do 
+            -- Arkadaki tüm kod akışını işlemci seviyesinde kilitler
+        end
+    end)
+    
+    error("SW HUB: Yetkisiz Giriş Denemesi.")
     return
 end
 -- =====================================================================
 
 
--- İki ayrı dosyayı da internetten çekiyoruz
+-- İki ayrı dosyayı da internetten çekiyoruz (Şifre Listeleri)
 local adminUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/admin_keys.lua"
 local normalUrl = "https://raw.githubusercontent.com/"..githubKullaniciAdi.."/"..repoAdi.."/main/normal_keys.lua"
 
@@ -125,7 +137,7 @@ end)
 while loginWindowActive do task.wait(0.1) end
 if not loginSuccess then return end
 
--- BURADAN SONRASI RAYFIELD MENÜSÜ VE SENKRONİZASYON MOTORU (Değişmedi)
+-- BURADAN SONRASI RAYFIELD MENÜSÜ VE SENKRONİZASYON MOTORU
 local RS = game:GetService("RunService")
 local TCS = game:GetService("TextChatService")
 
@@ -159,7 +171,6 @@ if isAdmin then
             GeneratedKeyStr = sonuc
             Rayfield:Notify({Title = "Sifre Uretildi", Content = sonuc .. " (Kopyalandi)", Duration = 5})
             setclipboard("    [\"" .. sonuc .. "\"] = true,") 
-            -- Direkt GitHub'a yapıştırılacak hazır satırı panoya kopyalar!
         end,
     })
 end
