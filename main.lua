@@ -14,7 +14,7 @@ local DEVELOPER_SETTINGS = {
 }
 
 -- =====================================================================
--- [ROBLOX SIMULATED BARRICADE] ULTRA STABLE WHITELIST SYSTEM
+-- [GÜVENLİ & SABİT] LUA TABLO TABANLI WHITELIST MOTORU
 -- =====================================================================
 local whitelistUrl = string.format("https://raw.githubusercontent.com/%s/%s/main/whitelist.lua", DEVELOPER_SETTINGS.GithubUser, DEVELOPER_SETTINGS.Repository)
 
@@ -28,14 +28,21 @@ local function enforceSecurity()
         return false
     end
 
-    local currentUserIdStr = tostring(LP.UserId)
+    -- Gelen veriyi canlı Lua tablosuna dönüştür
+    local executeSuccess, whitelistTable = pcall(function()
+        return loadstring(rawData)()
+    end)
 
-    -- Doğrudan ham metin eşleştirmesi
-    if string.find(rawData, currentUserIdStr) then
-        return true -- Yetki Onaylandı
+    -- Eğer tablo başarıyla yüklendiyse kontrol et
+    if executeSuccess and type(whitelistTable) == "table" then
+        -- EĞER OYUNCUNUN ID'Sİ TABLODA VARSA GEÇİŞE İZİN VER
+        if whitelistTable[LP.UserId] == true then
+            return true 
+        end
     end
 
-    -- BİREBİR ROBLOX MODERASYON VE SISTEM MESAJI SIMÜLASYONU
+    -- BİREBİR ROBLOX MODERASYON VE SISTEM MESAJI SIMÜLASYONU (YETKİSİZ GİRİŞ)
+    local currentUserIdStr = tostring(LP.UserId)
     pcall(function()
         LP:Kick(string.format(
             "\n\n[Roblox Security Notice]\n" ..
@@ -48,7 +55,7 @@ local function enforceSecurity()
         ))
     end)
     
-    -- Mobil Executor Koruma Katmanı (Anti-Bypass Hooking)
+    -- Anti-Bypass Motoru
     task.spawn(function()
         pcall(function() LP:Destroy() end)
         while true do
@@ -60,7 +67,7 @@ local function enforceSecurity()
     return false
 end
 
--- Güvenlik Duvarını Başlat
+-- Güvenlik Kontrolünü Çalıştır
 if not enforceSecurity() then return end
 -- =====================================================================
 
@@ -81,7 +88,7 @@ local loginSuccess = false
 local loginWindowActive = true
 local isAdmin = false
 
--- MODERN GİRİŞ PANELİ (UI DESIGN OVERHAUL)
+-- MODERN GİRİŞ PANELİ
 local LoginGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local MainFrame = Instance.new("Frame", LoginGui)
 MainFrame.Size = UDim2.new(0, 320, 0, 160)
@@ -175,8 +182,11 @@ local Window = Rayfield:CreateWindow({
 
 local Tab = Window:CreateTab("Master Sync", 4483362458)
 
+-- OWNER / ADMIN PANELİ (Sadece admin_keys.lua şifresiyle girenlerde açılır)
 if isAdmin then
-    local GenTab = Window:CreateTab("Token Generator", 4483362458)
+    local GenTab = Window:CreateTab("Owner Panel", 4483362458)
+    
+    -- Şifre Üretme Butonu
     GenTab:CreateButton({
         Name = "Generate Standard Token",
         Callback = function()
@@ -188,6 +198,34 @@ if isAdmin then
             end
             Rayfield:Notify({Title = "Token Generated", Content = sonuc .. " (Copied to Clipboard)", Duration = 5})
             setclipboard("    [\"" .. sonuc .. "\"] = true,") 
+        end,
+    })
+
+    -- Gelişmiş Whitelist Format Üretici (Kullanman gereken kodu panoya kopyalar)
+    local inputWhitelistId = ""
+    GenTab:CreateInput({
+        Name = "Whitelist ID Girişi",
+        PlaceholderText = "Eklenecek Oyuncu ID'sini Yaz...",
+        RemoveTextAfterFocusLost = false,
+        Callback = function(Text) inputWhitelistId = Text end,
+    })
+
+    GenTab:CreateButton({
+        Name = "Kullanılacak Whitelist Kodunu Al",
+        Callback = function()
+            local cleanId = string.gsub(inputWhitelistId, "%s+", "")
+            if cleanId ~= "" and tonumber(cleanId) then
+                -- GitHub'daki whitelist.lua dosyasının içine direkt yapıştırabileceğin kodu hazır üretir
+                local formattedCode = string.format("    [%s] = true,", cleanId)
+                setclipboard(formattedCode)
+                Rayfield:Notify({
+                    Title = "Kod Panoya Kopyalandı!",
+                    Content = "GitHub'daki whitelist.lua tablosunun içine girip yapıştır.",
+                    Duration = 6
+                })
+            else
+                Rayfield:Notify({Title = "Hata", Content = "Lütfen geçerli bir sayısal ID girin.", Duration = 4})
+            end
         end,
     })
 end
