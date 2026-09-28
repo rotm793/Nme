@@ -1,2 +1,1 @@
--- GitHub'daki bu dosyadan şifreyi değiştirebilirsiniz:
-"Swgangsolos"
+"NME_SECRET_KEY_2026"
