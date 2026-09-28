@@ -1,13 +1,28 @@
--- Rayfield GUI Kütüphanesini Yükleme
+-- ============================================================
+-- ŞİFRE AYARI (Şifreyi değiştirmek için burayı düzenle)
+-- ============================================================
+local LOCAL_KEY = "semihinamikokuyo"
+
+-- ============================================================
+-- RAYFIELD GUI VE KOD BÜTÜNÜ
+-- ============================================================
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Ana Pencere Yapılandırması (Şifre Sistemi Kaldırıldı)
 local Window = Rayfield:CreateWindow({
    Name = "NME Identity & Profile Spoofer",
    LoadingTitle = "NME System Yükleniyor...",
    LoadingSubtitle = "by rotm793",
    ConfigurationSaving = { Enabled = false },
-   KeySystem = false -- Şifre sistemi devre dışı bırakıldı
+   KeySystem = true, -- Şifre sistemi aktif
+   KeySettings = {
+      Title = "NME Key System",
+      Subtitle = "Giriş Şifresi Gereklidir",
+      Note = "Şifrenizi giriniz.",
+      FileName = "NmeKeyConfig",
+      SaveKey = false,
+      GrabKeyFromSite = false,
+      Key = { LOCAL_KEY } -- Yukarıdaki şifreyi kullanır
+   }
 })
 
 local Tab = Window:CreateTab("Identity Changer", 4483362458)
@@ -18,7 +33,7 @@ local newName = ""
 local newDisplayName = ""
 local newUserId = 0
 
--- 1. Hedef Oyuncu Adı Girişi
+-- Inputs / Girdiler
 Tab:CreateInput({
    Name = "Hedef Oyuncu Adı",
    PlaceholderText = "İsmi değiştirilecek oyuncunun tam adı...",
@@ -28,7 +43,6 @@ Tab:CreateInput({
    end,
 })
 
--- 2. Yeni Kullanıcı Adı (Username)
 Tab:CreateInput({
    Name = "Yeni Username (İsim)",
    PlaceholderText = "Örn: Builderman",
@@ -38,7 +52,6 @@ Tab:CreateInput({
    end,
 })
 
--- 3. Yeni Ekran Adı (DisplayName)
 Tab:CreateInput({
    Name = "Yeni Display Name",
    PlaceholderText = "Örn: Administrator",
@@ -48,7 +61,6 @@ Tab:CreateInput({
    end,
 })
 
--- 4. Yeni Player ID (Tab Vesikalığı)
 Tab:CreateInput({
    Name = "Yeni Player ID (Tab Vesikalığı)",
    PlaceholderText = "Avatar vesikalığının çekileceği ID...",
@@ -58,7 +70,7 @@ Tab:CreateInput({
    end,
 })
 
--- 5. İşlem Butonu
+-- Buton
 Tab:CreateButton({
    Name = "Kimliği Uygula",
    Callback = function()
@@ -75,14 +87,14 @@ Tab:CreateButton({
          return
       end
 
-      -- Player nesnesinin kimlik verilerini değiştirme (Name, DisplayName, UserId)
+      -- Player nesnesi kimlik değişimi
       pcall(function()
          if newName ~= "" then targetPlayer.Name = newName end
          if newDisplayName ~= "" then targetPlayer.DisplayName = newDisplayName end
          if newUserId and newUserId > 0 then targetPlayer.UserId = newUserId end
       end)
 
-      -- Karakterin başının üzerindeki ismi (Nametag) güncelleme
+      -- Nametag değişimi
       local character = targetPlayer.Character
       if character and character:FindFirstChild("Humanoid") then
          if newDisplayName ~= "" then
@@ -92,7 +104,7 @@ Tab:CreateButton({
          end
       end
 
-      -- UI ve Tab vesikalık resimlerini tarayıp güncelleme
+      -- UI ve Tab vesikalık değişimi
       for _, gui in ipairs(Players.LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
          if gui:IsA("TextLabel") and targetUsername ~= "" then
             if string.find(gui.Text, targetUsername) then
@@ -112,7 +124,7 @@ Tab:CreateButton({
 
       Rayfield:Notify({
          Title = "Başarılı",
-         Content = targetPlayer.Name .. " için isim, DisplayName, UserId ve Tab verileri güncellendi!",
+         Content = targetPlayer.Name .. " için veriler güncellendi!",
          Duration = 4,
          Image = 4483362458,
       })
