@@ -9,7 +9,7 @@ local LOCAL_KEY = "semihinamikokuyo"
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "NME Identity & Profile Spoofer",
+   Name = "NME Identity & Inventory Spoofer",
    LoadingTitle = "NME System Yükleniyor...",
    LoadingSubtitle = "by rotm793",
    ConfigurationSaving = { Enabled = false },
@@ -25,10 +25,9 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
-local Tab = Window:CreateTab("Player Spoofer", 4483362458)
+local Tab = Window:CreateTab("Full Spoofer", 4483362458)
 
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 
 -- Sunucudaki oyuncuların listesini alma
 local function GetPlayerList()
@@ -58,7 +57,7 @@ local PlayerDropdown = Tab:CreateDropdown({
    end,
 })
 
--- Oyuncu Listesini Yenileme Butonu (Biri girip çıktığında)
+-- Oyuncu Listesini Yenileme
 Tab:CreateButton({
    Name = "🔄 Oyuncu Listesini Yenile",
    Callback = function()
@@ -75,16 +74,50 @@ Tab:CreateButton({
 -- 2. Kopyalanacak ID Girdisi
 Tab:CreateInput({
    Name = "Dönüştürülecek Roblox ID",
-   PlaceholderText = "Örn: 1 (Builderman) veya kendi ID'niz...",
+   PlaceholderText = "Örn: 1 (Builderman)...",
    RemoveTextOnFocusLost = false,
    Callback = function(Text)
       targetIdToCopy = Text
    end,
 })
 
--- 3. Uygulama Butonu
+-- Derin UI ve Nesne Tarayıcı Fonksiyon
+local function ScanAndReplace(parent, targetName, newName, avatarUrl)
+   for _, obj in ipairs(parent:GetDescendants()) do
+      -- Text / Item / Name Etiketlerini Değiştirme
+      if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+         if obj.Text and string.find(obj.Text, targetName) then
+            obj.Text = string.gsub(obj.Text, targetName, newName)
+         end
+      end
+
+      -- Tab Listesi & Envanter Item Görsellerini Değiştirme
+      if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+         local objName = obj.Name:lower()
+         if objName:find("avatar") or objName:find("headshot") or objName:find("icon") or objName:find("profile") or objName:find("player") or objName:find("portrait") then
+            if avatarUrl and avatarUrl ~= "" then
+               pcall(function()
+                  obj.Image = avatarUrl
+               end)
+            end
+         end
+      end
+
+      -- Custom Tab / Envanter Tooltip veya Attribute İçerikleri
+      pcall(function()
+         if obj:GetAttribute("Owner") and tostring(obj:GetAttribute("Owner")) == targetName then
+            obj:SetAttribute("Owner", newName)
+         end
+         if obj:GetAttribute("PlayerName") and tostring(obj:GetAttribute("PlayerName")) == targetName then
+            obj:SetAttribute("PlayerName", newName)
+         end
+      end)
+   end
+end
+
+-- 3. Derin Uygulama Butonu
 Tab:CreateButton({
-   Name = "⚡ Her Şeyi Kopyala ve Uygula",
+   Name = "⚡ Derin Kimlik & Item/Tab Değişimi Yap",
    Callback = function()
       if selectedTargetName == "" then
          Rayfield:Notify({
@@ -107,77 +140,55 @@ Tab:CreateButton({
          return
       end
 
-      -- Roblox API'sinden Kullanıcı Bilgilerini Çekme
+      -- Roblox API'sinden Bilgi Çekme
       local fetchedUsername = ""
       local fetchedDisplayName = ""
       
-      local successInfo, err = pcall(function()
-         local userInfo = Players:GetNameFromUserIdAsync(targetId)
-         fetchedUsername = userInfo
-         -- Display Name çekmek için kullanıcı detayları
-         local playerObj = Players:GetPlayerByUserId(targetId)
-         if playerObj then
-            fetchedDisplayName = playerObj.DisplayName
+      pcall(function()
+         fetchedUsername = Players:GetNameFromUserIdAsync(targetId)
+         local pObj = Players:GetPlayerByUserId(targetId)
+         if pObj then
+            fetchedDisplayName = pObj.DisplayName
          else
-            fetchedDisplayName = userInfo
+            fetchedDisplayName = fetchedUsername
          end
       end)
 
-      if not successInfo or fetchedUsername == "" then
+      if fetchedUsername == "" then
          Rayfield:Notify({
             Title = "Hata",
-            Content = "Bu ID'ye ait kullanıcı bilgileri alınamadı!",
+            Content = "ID bilgisi alınamadı!",
             Duration = 3,
             Image = 4483362458,
          })
          return
       end
 
-      -- Thumbnail (Avatar Vesikalığı) Alma
+      -- Vesikalık Görseli Alma
       local avatarIcon = ""
       pcall(function()
          avatarIcon = Players:GetUserThumbnailAsync(targetId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
       end)
 
-      local replaceCount = 0
-
-      -- 1. EKRAN ARAYÜZLERİNİ (PlayerGui / Tab / Leaderboard) DEĞİŞTİR
+      -- 1. Oyuncu Arayüzünü (PlayerGui) Derinlemesine Tara (Tab ve Envanter Dahil)
       local localPlayerGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
       if localPlayerGui then
-         for _, guiObj in ipairs(localPlayerGui:GetDescendants()) do
-            -- Yazıları Değiştir
-            if guiObj:IsA("TextLabel") or guiObj:IsA("TextButton") then
-               if string.find(guiObj.Text, selectedTargetName) then
-                  guiObj.Text = string.gsub(guiObj.Text, selectedTargetName, fetchedDisplayName)
-                  replaceCount = replaceCount + 1
-               end
-            end
-            -- Avatarları/Resimleri Değiştir
-            if guiObj:IsA("ImageLabel") or guiObj:IsA("ImageButton") then
-               local nameLower = guiObj.Name:lower()
-               if nameLower:find("avatar") or nameLower:find("headshot") or nameLower:find("icon") or nameLower:find("player") then
-                  if avatarIcon ~= "" then
-                     guiObj.Image = avatarIcon
-                  end
-               end
-            end
-         end
+         ScanAndReplace(localPlayerGui, selectedTargetName, fetchedDisplayName, avatarIcon)
       end
 
-      -- 2. KARAKTER ÜSTÜNDEKİ YAZILARI (Nametag / BillboardGui) DEĞİŞTİR (Bewitched vb. oyunlar dahil)
-      for _, worldObj in ipairs(game.Workspace:GetDescendants()) do
-         if worldObj:IsA("TextLabel") or worldObj:IsA("TextButton") then
-            if string.find(worldObj.Text, selectedTargetName) then
-               worldObj.Text = string.gsub(worldObj.Text, selectedTargetName, fetchedDisplayName)
-               replaceCount = replaceCount + 1
-            end
-         end
-      end
+      -- 2. Varsayılan Roblox CoreGui (Varsayılan Tab Menüsü) Tara
+      pcall(function()
+         local coreGui = game:GetService("CoreGui")
+         ScanAndReplace(coreGui, selectedTargetName, fetchedDisplayName, avatarIcon)
+      end)
+
+      -- 3. Harita / Workspace (3D Karakterler, Itemlar, Nametagler) Tara
+      ScanAndReplace(game.Workspace, selectedTargetName, fetchedDisplayName, avatarIcon)
 
       Rayfield:Notify({
-         Title = "İşlem Başarılı!",
-         Content = selectedTargetName .. " artık " .. fetchedDisplayName .. " (" .. fetchedUsername .. ") yapıldı!",
-         Duration = 5,
+         Title = "Başarılı!",
+         Content = selectedTargetName .. " için Tab, Arayüz ve Envanter öğeleri güncellendi!",
+         Duration = 4,
          Image = 4483362458,
       })
    end,
